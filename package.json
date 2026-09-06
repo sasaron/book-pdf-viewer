@@ -1,0 +1,24 @@
+{
+    "name": "pdf-viewer",
+    "private": true,
+    "type": "module",
+    "description": "ローカルPDFをファイル選択とD&Dで開くビューア",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "preview": "vite preview",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check .",
+        "fmt": "biome format --write ."
+    },
+    "dependencies": {
+        "pdfjs-dist": "6.3.289"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.5.12",
+        "@types/node": "^24",
+        "typescript": "^7.0.2",
+        "vite": "^8.2.2",
+        "vite-plugin-static-copy": "^4.1.1"
+    }
+}

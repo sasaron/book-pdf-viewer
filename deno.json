@@ -1,0 +1,12 @@
+{
+    "nodeModulesDir": "auto",
+    "tasks": {
+        "test": "deno test --no-check --location=http://localhost/ tests/"
+    },
+    "fmt": {
+        "exclude": ["**"]
+    },
+    "lint": {
+        "exclude": ["**"]
+    }
+}
