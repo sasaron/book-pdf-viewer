@@ -1,0 +1,8 @@
+node_modules
+dist
+
+# 購入したPDF。リポジトリには入れない
+*.pdf
+
+# 実装指示書。手元の作業メモなので追跡しない
+IMPLEMENTATION.md
