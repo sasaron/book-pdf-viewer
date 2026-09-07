@@ -15,3 +15,13 @@ export type OpenDocument = {
     doc: PDFDocumentProxy;
     view: DocumentView;
 };
+
+export type ViewerState = {
+    docId: DocId | null;
+    name: string;
+    page: number;
+    numPages: number;
+    scale: number;
+    fit: boolean;
+    sidebarCollapsed: boolean;
+};

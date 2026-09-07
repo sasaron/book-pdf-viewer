@@ -10,12 +10,44 @@
     <header class="toolbar">
         <button id="open" type="button">開く</button>
         <input id="file" type="file" accept="application/pdf" multiple hidden>
+
+        <span class="sep"></span>
+
+        <div class="inline-controls">
+            <button id="prev" type="button" title="前のページ ( ← )" disabled>&lsaquo;</button>
+            <input id="page-input" type="number" min="1" value="1" aria-label="ページ番号" disabled>
+            <span id="page-total">/ -</span>
+            <button id="next" type="button" title="次のページ ( → )" disabled>&rsaquo;</button>
+        </div>
+
+        <span class="sep"></span>
+
+        <div class="inline-controls">
+            <button id="zoom-out" type="button" title="小さく ( - )" disabled>-</button>
+            <button id="zoom-in" type="button" title="大きく ( + )" disabled>+</button>
+            <button id="zoom-fit" class="toggle" type="button" title="幅に合わせる" aria-pressed="true" disabled>幅</button>
+            <span id="scale-label" class="scale-label"></span>
+        </div>
+
         <span class="spacer"></span>
+
         <span id="doc-name" class="doc-name"></span>
+        <button id="toggle-sidebar" class="toggle" type="button" aria-pressed="true" title="サイドバーを折り畳む ( [ )">目次</button>
     </header>
 
-    <main id="viewer" class="viewer" aria-label="本文">
-        <p class="empty">PDF をドラッグ&amp;ドロップするか、「開く」から選んでください。</p>
+    <main class="panes">
+        <nav id="sidebar" class="pane pane-side" aria-label="しおりと目次">
+            <div class="pane-head">しおり</div>
+            <div id="bookmarks" class="bookmarks"></div>
+            <div class="pane-head">目次</div>
+            <div id="outline" class="outline"></div>
+        </nav>
+
+        <section class="pane pane-body" aria-label="本文">
+            <div id="viewer" class="viewer">
+                <p class="empty">PDF をドラッグ&amp;ドロップするか、「開く」から選んでください。</p>
+            </div>
+        </section>
     </main>
 
     <footer id="statusbar" class="statusbar"></footer>

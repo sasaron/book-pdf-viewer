@@ -1,11 +1,20 @@
-import type { PageViewport, PDFPageProxy } from "pdfjs-dist";
+import type { PageViewport, PDFPageProxy, RenderTask } from "pdfjs-dist";
+import { RenderingCancelledException } from "pdfjs-dist";
 import type { OpenDocument } from "../state/types.ts";
 
-const MIN_SCALE = 0.5;
-const MAX_SCALE = 4;
+export const MIN_SCALE = 0.5;
+export const MAX_SCALE = 4;
+export const SCALE_STEP = 0.2;
 
 const MAX_CANVAS_AREA_DEFAULT = 268_435_456;
 const MAX_CANVAS_AREA_SAFARI = 16_777_216;
+
+const RESIZE_THRESHOLD_PX = 4;
+const RESIZE_DEBOUNCE_MS = 120;
+
+export function clampScale(scale: number): number {
+    return Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
+}
 
 function maxCanvasArea(): number {
     const ua = navigator.userAgent;
@@ -20,10 +29,7 @@ function pixelRatio(viewport: PageViewport): number {
         return ratio;
     }
     const max = maxCanvasArea();
-    if (area * ratio * ratio <= max) {
-        return ratio;
-    }
-    return Math.sqrt(max / area);
+    return area * ratio * ratio <= max ? ratio : Math.sqrt(max / area);
 }
 
 export function fitScale(page: PDFPageProxy, viewer: HTMLElement): number {
@@ -35,42 +41,89 @@ export function fitScale(page: PDFPageProxy, viewer: HTMLElement): number {
         return 1;
     }
 
-    const width = page.getViewport({ scale: 1 }).width;
-    return Math.min(Math.max(available / width, MIN_SCALE), MAX_SCALE);
+    return clampScale(available / page.getViewport({ scale: 1 }).width);
 }
 
-export async function renderPage(
-    opened: OpenDocument,
-    pageNumber: number,
-    viewer: HTMLElement,
-): Promise<void> {
-    const target = Math.min(Math.max(pageNumber, 1), opened.numPages);
-    opened.view.page = target;
+function isCancelled(error: unknown): boolean {
+    return error instanceof RenderingCancelledException;
+}
 
-    const page = await opened.doc.getPage(target);
-    const scale = opened.view.fit ? fitScale(page, viewer) : opened.view.scale;
-    opened.view.scale = scale;
+export type Renderer = {
+    render(opened: OpenDocument, pageNumber: number): Promise<void>;
+    watchResize(onResize: () => void): void;
+};
 
-    const viewport = page.getViewport({ scale });
-    const ratio = pixelRatio(viewport);
+export function createRenderer(viewer: HTMLElement): Renderer {
+    let task: RenderTask | null = null;
+    let generation = 0;
+    let fitWidth = 0;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.floor(viewport.width * ratio);
-    canvas.height = Math.floor(viewport.height * ratio);
-    canvas.style.width = `${Math.floor(viewport.width)}px`;
+    async function render(opened: OpenDocument, pageNumber: number): Promise<void> {
+        const target = Math.min(Math.max(pageNumber, 1), opened.numPages);
+        opened.view.page = target;
 
-    const task = page.render({
-        canvas,
-        viewport,
-        transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
-    });
+        // getPage の await は cancel できないので、追い越されたことを世代でも見る
+        const gen = ++generation;
+        task?.cancel();
 
-    try {
-        await task.promise;
-    } finally {
-        page.cleanup();
+        const page = await opened.doc.getPage(target);
+        if (gen !== generation) {
+            return;
+        }
+
+        const scale = opened.view.fit ? fitScale(page, viewer) : clampScale(opened.view.scale);
+        opened.view.scale = scale;
+        if (opened.view.fit) {
+            fitWidth = viewer.clientWidth;
+        }
+
+        const viewport = page.getViewport({ scale });
+        const ratio = pixelRatio(viewport);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(viewport.width * ratio);
+        canvas.height = Math.floor(viewport.height * ratio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+
+        const current = page.render({
+            canvas,
+            viewport,
+            transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
+        });
+        task = current;
+
+        try {
+            await current.promise;
+        } catch (error) {
+            if (isCancelled(error)) {
+                return;
+            }
+            throw error;
+        } finally {
+            if (task === current) {
+                task = null;
+            }
+        }
+
+        if (gen !== generation) {
+            return;
+        }
+
+        viewer.replaceChildren(canvas);
+        viewer.scrollTop = 0;
     }
 
-    viewer.replaceChildren(canvas);
-    viewer.scrollTop = 0;
+    function watchResize(onResize: () => void): void {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
+        new ResizeObserver(() => {
+            if (Math.abs(viewer.clientWidth - fitWidth) < RESIZE_THRESHOLD_PX) {
+                return;
+            }
+            clearTimeout(timer);
+            timer = setTimeout(onResize, RESIZE_DEBOUNCE_MS);
+        }).observe(viewer);
+    }
+
+    return { render, watchResize };
 }

@@ -19,6 +19,32 @@
     font-weight: 400;
 }
 
+.scale-label {
+    min-width: 4ch;
+    color: var(--fg-muted);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.toggle[aria-pressed="false"] {
+    border-style: dashed;
+    color: var(--fg-muted);
+}
+
+.bookmarks,
+.outline {
+    flex: 1;
+    overflow: auto;
+    padding: 8px 12px;
+    color: var(--fg-muted);
+    font-size: 12px;
+}
+
+.bookmarks {
+    flex: 0 1 auto;
+    max-height: 30%;
+}
+
 .empty {
     margin: 24px auto;
     max-width: 42ch;

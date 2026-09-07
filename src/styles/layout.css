@@ -10,8 +10,61 @@
     font-weight: 600;
 }
 
+.inline-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sep {
+    width: 1px;
+    height: 18px;
+    background: var(--line);
+}
+
 .spacer {
     flex: 1;
+}
+
+.panes {
+    --side-w: 280px;
+    display: grid;
+    grid-template-columns: var(--side-w) minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+
+body.sidebar-collapsed .panes {
+    --side-w: 0px;
+}
+
+body.sidebar-collapsed .pane-side {
+    overflow: hidden;
+    border-right: 0;
+}
+
+.pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    border-right: 1px solid var(--line);
+}
+
+.pane-body {
+    border-right: 0;
+}
+
+.pane-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-sunken);
+    color: var(--fg-muted);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .statusbar {
