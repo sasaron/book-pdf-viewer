@@ -7,7 +7,21 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📄</text></svg>">
 </head>
 <body>
-    <div id="app"></div>
+    <header class="toolbar">
+        <button id="open" type="button">開く</button>
+        <input id="file" type="file" accept="application/pdf" multiple hidden>
+        <span class="spacer"></span>
+        <span id="doc-name" class="doc-name"></span>
+    </header>
+
+    <main id="viewer" class="viewer" aria-label="本文">
+        <p class="empty">PDF をドラッグ&amp;ドロップするか、「開く」から選んでください。</p>
+    </main>
+
+    <footer id="statusbar" class="statusbar"></footer>
+
+    <div class="dropzone">PDF をドロップして開く</div>
+
     <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

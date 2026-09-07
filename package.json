@@ -9,7 +9,7 @@
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
         "lint": "biome check .",
-        "fmt": "biome format --write ."
+        "fmt": "biome check --write ."
     },
     "dependencies": {
         "pdfjs-dist": "6.3.289"

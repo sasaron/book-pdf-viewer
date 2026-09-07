@@ -1,0 +1,46 @@
+.viewer {
+    flex: 1;
+    overflow: auto;
+    /* スクロールバーの出入りで clientWidth が動くと幅合わせの再描画が揺れる */
+    scrollbar-gutter: stable;
+    padding: 16px;
+    background: var(--bg-sunken);
+    text-align: center;
+}
+
+.viewer canvas {
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 1px 8px rgb(0 0 0 / 0.18);
+}
+
+.doc-name {
+    color: var(--fg);
+    font-weight: 400;
+}
+
+.empty {
+    margin: 24px auto;
+    max-width: 42ch;
+    color: var(--fg-muted);
+    text-align: left;
+    white-space: pre-wrap;
+}
+
+.dropzone {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 0.35);
+    color: var(--accent-fg);
+    font-size: 18px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+body.dragging .dropzone {
+    display: flex;
+}

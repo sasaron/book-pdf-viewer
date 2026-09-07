@@ -1,0 +1,26 @@
+:root {
+    --bg: #ffffff;
+    --bg-sunken: #f4f5f7;
+    --bg-raised: #ffffff;
+    --fg: #1a1c1f;
+    --fg-muted: #616874;
+    --line: #d9dce1;
+    --accent: #2f6fd0;
+    --accent-fg: #ffffff;
+    --fail: #b3261e;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16181c;
+        --bg-sunken: #101216;
+        --bg-raised: #1e2126;
+        --fg: #e6e8ec;
+        --fg-muted: #9aa2ae;
+        --line: #2f343c;
+        --accent: #5b9bf5;
+        --accent-fg: #0d1117;
+        --fail: #f2776c;
+    }
+}
