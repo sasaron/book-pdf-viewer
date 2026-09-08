@@ -1,0 +1,34 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        "github>aquaproj/aqua-renovate-config#2.13.0",
+        ":semanticCommits"
+    ],
+    "timezone": "Asia/Tokyo",
+    "schedule": ["* 0-6 * * 1"],
+    "packageRules": [
+        {
+            "description": "pdfjs-dist は CJK 描画の再検証が要るので、まとめず単独の PR にする",
+            "matchPackageNames": ["pdfjs-dist"],
+            "groupName": null,
+            "addLabels": ["needs-cjk-check"]
+        },
+        {
+            "description": "typescript-eslint を入れると TypeScript の上限が戻る。同時に上げないよう分ける",
+            "matchPackageNames": ["typescript"],
+            "groupName": null
+        },
+        {
+            "description": "ビルドに出ない開発ツールはまとめて1本にする",
+            "matchDepTypes": ["devDependencies"],
+            "matchPackageNames": ["!typescript"],
+            "groupName": "dev tooling"
+        },
+        {
+            "description": "GitHub Actions はダイジェストではなくタグで追う",
+            "matchManagers": ["github-actions"],
+            "groupName": "github actions"
+        }
+    ]
+}

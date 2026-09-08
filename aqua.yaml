@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/aquaproj/aqua/main/json-schema/aqua-yaml.json
+#
+# 手元と CI で同じ deno を使うためだけに置いている。
+# biome と typescript は npm 側に版があるので aqua には入れない。真実が2か所に割れる。
+checksum:
+  enabled: true
+  require_checksum: true
+  supported_envs:
+    - all
+registries:
+  - type: standard
+    ref: v4.558.1
+packages:
+  - name: denoland/deno@v2.9.6

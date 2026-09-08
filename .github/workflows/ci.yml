@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: aquaproj/aqua-installer@v4.0.5
+        with:
+          aqua_version: v2.62.3
+
+      # lock が古いまま緑になると、CI が見ている版と手元の版がずれる
+      - run: deno install --frozen
+
+      - run: deno task typecheck
+      - run: deno task lint
+      - run: deno task test
+      - run: deno task build

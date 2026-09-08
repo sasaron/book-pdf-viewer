@@ -19,6 +19,13 @@ deno install     # 依存を取る
 deno task dev    # 開発サーバ
 ```
 
+deno の版は [aqua](https://aquaproj.github.io/) で固定してある。CI と同じ版を使うなら:
+
+```sh
+aqua i
+export PATH="$(aqua root-dir)/bin:$PATH"
+```
+
 | task | 中身 |
 | --- | --- |
 | `dev` | Vite の開発サーバ |
@@ -125,6 +132,22 @@ deno task test
 ```sh
 deno run -A scripts/dump-textcontent.mjs <pdf> <page>... > /tmp/textcontent.json
 ```
+
+## CI とバージョン更新
+
+`.github/workflows/ci.yml` が push と PR で `typecheck` / `lint` / `test` / `build` を回す。
+deno は aqua が入れるので、CI と手元で同じ版になる。`aqua-checksums.json` に
+全プラットフォーム分の SHA-256 を置き、`require_checksum: true` で検証を必須にしている。
+
+依存の更新は Renovate に任せる。`deno` manager が `deno.json` と、
+`deno.lock` が隣にある `package.json` の両方を読み、lock も更新する。
+aqua.yaml と aqua-installer の版は `aqua-renovate-config` が追う。
+
+`pdfjs-dist` だけは他とまとめず単独の PR にして `needs-cjk-check` を付ける。
+版を上げると CJK 描画を確かめ直す必要があるため。`typescript` も単独にしてある。
+
+`aqua-checksums.json` は Renovate では更新されない。aqua の版を上げる PR では
+`aqua update-checksum --all` を回して入れ直す。
 
 ## 決めたこと
 
