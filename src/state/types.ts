@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
 
 export type DocId = string;
 
@@ -13,6 +13,8 @@ export type OpenDocument = {
     name: string;
     numPages: number;
     doc: PDFDocumentProxy;
+    task: PDFDocumentLoadingTask;
+    outline: OutlineNode[] | null;
     view: DocumentView;
 };
 

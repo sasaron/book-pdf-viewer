@@ -41,16 +41,34 @@ export async function openFile(file: File): Promise<OpenDocument> {
         return cached;
     }
 
-    const doc = await getDocument({ data: new Uint8Array(buffer), ...PDF_ASSETS }).promise;
+    const task = getDocument({ data: new Uint8Array(buffer), ...PDF_ASSETS });
+    const doc = await task.promise;
     const opened: OpenDocument = {
         id,
         name: file.name,
         numPages: doc.numPages,
         doc,
+        task,
+        outline: null,
         view: { page: 1, scale: 1.3, fit: true },
     };
     documents.set(id, opened);
     return opened;
+}
+
+export function openDocuments(): OpenDocument[] {
+    return [...documents.values()];
+}
+
+export async function closeDocument(id: DocId): Promise<void> {
+    const opened = documents.get(id);
+    if (opened === undefined) {
+        return;
+    }
+
+    documents.delete(id);
+    // v6 で PDFDocumentProxy.destroy は消えたので loadingTask 側から畳む
+    await opened.task.destroy();
 }
 
 export function isPdf(file: File): boolean {

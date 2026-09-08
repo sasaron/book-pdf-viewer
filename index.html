@@ -11,6 +11,8 @@
         <button id="open" type="button">開く</button>
         <input id="file" type="file" accept="application/pdf" multiple hidden>
 
+        <div id="doctabs" class="doctabs" role="tablist" hidden></div>
+
         <span class="sep"></span>
 
         <div class="inline-controls">
@@ -47,9 +49,7 @@
         </nav>
 
         <section class="pane pane-body" aria-label="本文">
-            <div id="viewer" class="viewer">
-                <p class="empty">PDF をドラッグ&amp;ドロップするか、「開く」から選んでください。</p>
-            </div>
+            <div id="viewer" class="viewer"></div>
         </section>
     </main>
 

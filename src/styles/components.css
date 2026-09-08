@@ -28,6 +28,58 @@
     font-weight: 400;
 }
 
+.doctabs {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+    max-width: 40%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.doctabs[hidden] {
+    display: none;
+}
+
+.doc-tab {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    max-width: 220px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg-raised);
+}
+
+.doc-tab:has(.doc-tab-select[aria-current="true"]) {
+    border-color: var(--accent);
+}
+
+.doc-tab-select {
+    min-width: 0;
+    padding: 4px 4px 4px 10px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 400;
+}
+
+.doc-tab-select[aria-current="true"] {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.doc-tab-close {
+    flex-shrink: 0;
+    padding: 0 8px 0 4px;
+    border: 0;
+    background: none;
+    color: var(--fg-muted);
+}
+
 .scale-label {
     min-width: 4ch;
     color: var(--fg-muted);

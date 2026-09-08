@@ -1,10 +1,10 @@
-import { isPdf, openFile } from "./pdf/loader.ts";
+import { closeDocument, isPdf, openDocuments, openFile } from "./pdf/loader.ts";
 import { loadOutline, nodeForPage } from "./pdf/outline.ts";
 import { clampScale, createRenderer, SCALE_STEP } from "./pdf/renderer.ts";
 import { sentencesForPage } from "./pdf/text.ts";
 import { createSpeaker } from "./speech/speaker.ts";
 import { createStore } from "./state/store.ts";
-import type { Bookmark, OpenDocument, OutlineNode, ViewerState } from "./state/types.ts";
+import type { Bookmark, DocId, OpenDocument, ViewerState } from "./state/types.ts";
 import {
     type BookmarkEntry,
     type BookmarkStore,
@@ -15,6 +15,7 @@ import {
 } from "./storage/bookmarks.ts";
 import { loadPrefs, savePrefs } from "./storage/prefs.ts";
 import { createBookmarksView } from "./ui/bookmarks-view.ts";
+import { createDocTabs } from "./ui/doctabs.ts";
 import { required } from "./ui/dom.ts";
 import { createDropzone } from "./ui/dropzone.ts";
 import { createKeyboard } from "./ui/keyboard.ts";
@@ -28,6 +29,15 @@ import "./styles/components.css";
 import "./styles/textlayer.css";
 
 const LAST_PAGE_FLUSH_MS = 500;
+
+const EMPTY_MESSAGE =
+    "PDF をドラッグ&ドロップするか、「開く」から選んでください。\n" +
+    "複数まとめて落とすとタブで行き来できます。\n\n" +
+    "←  →  ページ送り\n" +
+    "+  -  拡大縮小\n" +
+    "b     しおり\n" +
+    "r     読み上げ\n" +
+    "[     サイドバー";
 
 const viewer = required<HTMLElement>("#viewer");
 const fileInput = required<HTMLInputElement>("#file");
@@ -66,7 +76,6 @@ const speaker = createSpeaker({
 });
 
 let active: OpenDocument | null = null;
-let outline: OutlineNode[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 function message(error: unknown): string {
@@ -125,14 +134,30 @@ const outlineView = createOutlineView(required<HTMLElement>("#outline"), {
     onJump: (page) => void draw(page),
 });
 
+const docTabs = createDocTabs(required<HTMLElement>("#doctabs"), {
+    onSelect: (id) => void select(id),
+    onClose: (id) => void closeTab(id),
+});
+
 function labelForPage(page: number): string {
-    return nodeForPage(outline, page)?.title ?? "";
+    return nodeForPage(active?.outline ?? [], page)?.title ?? "";
 }
 
 function syncBookmarks(): void {
     const marks = currentMarks();
     bookmarksView.render(marks);
     store.set({ bookmarked: hasMark(marks, store.get().page) });
+}
+
+function syncTabs(): void {
+    docTabs.render(openDocuments(), active?.id ?? null);
+}
+
+function showEmptyState(): void {
+    const guide = document.createElement("p");
+    guide.className = "empty";
+    guide.textContent = EMPTY_MESSAGE;
+    viewer.replaceChildren(guide);
 }
 
 async function draw(pageNumber: number): Promise<void> {
@@ -163,6 +188,78 @@ async function draw(pageNumber: number): Promise<void> {
     } catch (error) {
         statusbar.error(`描画できませんでした: ${message(error)}`);
     }
+}
+
+/** 目次より本文を先に出す。読み終えるまでにタブが変わっていたら捨てる。 */
+async function ensureOutline(opened: OpenDocument): Promise<void> {
+    if (opened.outline === null) {
+        opened.outline = await loadOutline(opened.doc);
+    }
+    if (active === opened) {
+        outlineView.render(opened.outline);
+        outlineView.highlight(opened.view.page);
+    }
+}
+
+async function activate(opened: OpenDocument): Promise<void> {
+    speaker.stop();
+    active = opened;
+    outlineView.clear();
+
+    const entry = entryFor(opened);
+    entry.name = opened.name;
+
+    store.set({
+        docId: opened.id,
+        name: opened.name,
+        numPages: opened.numPages,
+        page: opened.view.page,
+        scale: opened.view.scale,
+        fit: opened.view.fit,
+    });
+
+    syncTabs();
+    await draw(opened.view.page);
+    syncBookmarks();
+    await ensureOutline(opened);
+}
+
+async function select(id: DocId): Promise<void> {
+    const opened = openDocuments().find((candidate) => candidate.id === id);
+    if (opened === undefined || opened === active) {
+        return;
+    }
+    await activate(opened);
+    statusbar.info(`${opened.name} / ${opened.numPages} ページ`);
+}
+
+async function closeTab(id: DocId): Promise<void> {
+    const wasActive = active?.id === id;
+    if (wasActive) {
+        speaker.stop();
+        active = null;
+    }
+
+    persistNow();
+    await closeDocument(id);
+
+    const rest = openDocuments();
+    if (!wasActive) {
+        syncTabs();
+        return;
+    }
+
+    if (rest.length === 0) {
+        outlineView.clear();
+        bookmarksView.render([]);
+        showEmptyState();
+        store.set({ docId: null, name: "", numPages: 0, page: 1, bookmarked: false });
+        syncTabs();
+        statusbar.clear();
+        return;
+    }
+
+    await activate(rest[rest.length - 1]);
 }
 
 const actions = {
@@ -233,51 +330,47 @@ async function open(files: File[]): Promise<void> {
         return;
     }
 
-    const file = pdfs[pdfs.length - 1];
-    statusbar.info(`${file.name} を読み込み中…`);
     speaker.stop();
+    statusbar.info(
+        pdfs.length === 1 ? `${pdfs[0].name} を読み込み中…` : `${pdfs.length} 冊を読み込み中…`,
+    );
 
-    try {
-        const started = performance.now();
-        outline = [];
-        outlineView.clear();
-        active = await openFile(file);
+    const started = performance.now();
+    const alreadyOpen = new Set(openDocuments().map((doc) => doc.id));
+    const opened: OpenDocument[] = [];
+    const failed: string[] = [];
 
-        const entry = entryFor(active);
-        entry.name = active.name;
-        const resume = Math.min(Math.max(entry.lastPage, 1), active.numPages);
+    for (const file of pdfs) {
+        try {
+            const doc = await openFile(file);
 
-        store.set({
-            docId: active.id,
-            name: active.name,
-            numPages: active.numPages,
-            page: resume,
-            fit: active.view.fit,
-        });
+            // 開き直しのときだけ前回の続きに戻す。タブに残っている本は今の位置を保つ
+            if (!alreadyOpen.has(doc.id)) {
+                const entry = entryFor(doc);
+                entry.name = doc.name;
+                doc.view.page = Math.min(Math.max(entry.lastPage, 1), doc.numPages);
+            }
 
-        await draw(resume);
-        syncBookmarks();
-
-        const resumed = resume > 1 ? ` / ${resume} ページから` : "";
-        statusbar.info(
-            `${active.numPages} ページ / ${Math.round(performance.now() - started)}ms${resumed}`,
-        );
-
-        // 目次より1ページ目の描画を先に出す
-        const opened = active;
-        outline = await loadOutline(opened.doc);
-        if (active === opened) {
-            outlineView.render(outline);
-            outlineView.highlight(opened.view.page);
+            opened.push(doc);
+        } catch (error) {
+            failed.push(`${file.name}: ${message(error)}`);
         }
-    } catch (error) {
-        active = null;
-        outline = [];
-        outlineView.clear();
-        store.set({ docId: null, name: "", numPages: 0, bookmarked: false });
-        bookmarksView.render([]);
-        statusbar.error(`開けませんでした: ${message(error)}`);
     }
+
+    syncTabs();
+
+    if (opened.length === 0) {
+        statusbar.error(`開けませんでした — ${failed.join(" / ")}`);
+        return;
+    }
+
+    const first = opened[0];
+    await activate(first);
+
+    const resumed = first.view.page > 1 ? ` / ${first.view.page} ページから` : "";
+    const elapsed = Math.round(performance.now() - started);
+    const note = failed.length === 0 ? "" : ` / ${failed.length} 冊は開けなかった`;
+    statusbar.info(`${first.numPages} ページ / ${elapsed}ms${resumed}${note}`);
 }
 
 createDropzone(document.body, { onFiles: (files) => void open(files) });
@@ -299,3 +392,4 @@ globalThis.addEventListener("pagehide", persistNow);
 document.body.classList.toggle("sidebar-collapsed", prefs.sidebarCollapsed);
 toolbar.update(store.get());
 bookmarksView.render([]);
+showEmptyState();
