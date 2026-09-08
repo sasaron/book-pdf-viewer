@@ -208,7 +208,8 @@
     color: var(--fg-muted);
 }
 
-.bookmark-toggle[aria-pressed="true"] {
+.bookmark-toggle[aria-pressed="true"],
+.speak-toggle[aria-pressed="true"] {
     border-style: solid;
     border-color: var(--accent);
     color: var(--accent);

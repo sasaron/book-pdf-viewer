@@ -36,5 +36,6 @@ export type ViewerState = {
     scale: number;
     fit: boolean;
     bookmarked: boolean;
+    speaking: boolean;
     sidebarCollapsed: boolean;
 };

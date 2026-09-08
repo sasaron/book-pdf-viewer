@@ -8,6 +8,7 @@ export type ToolbarActions = {
     onZoom(direction: number): void;
     onFit(): void;
     onToggleBookmark(): void;
+    onToggleSpeech(): void;
     onToggleSidebar(): void;
 };
 
@@ -28,6 +29,7 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
     const scaleLabel = required<HTMLElement>("#scale-label");
     const docName = required<HTMLElement>("#doc-name");
     const bookmarkToggle = required<HTMLButtonElement>("#bookmark-toggle");
+    const speakToggle = required<HTMLButtonElement>("#speak-toggle");
     const toggleSidebar = required<HTMLButtonElement>("#toggle-sidebar");
 
     openButton.addEventListener("click", () => fileInput.click());
@@ -38,13 +40,22 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
     zoomIn.addEventListener("click", () => actions.onZoom(1));
     zoomFit.addEventListener("click", () => actions.onFit());
     bookmarkToggle.addEventListener("click", () => actions.onToggleBookmark());
+    speakToggle.addEventListener("click", () => actions.onToggleSpeech());
     toggleSidebar.addEventListener("click", () => actions.onToggleSidebar());
 
     return {
         update(state) {
             const loaded = state.docId !== null;
 
-            for (const button of [prev, next, zoomOut, zoomIn, zoomFit, bookmarkToggle]) {
+            for (const button of [
+                prev,
+                next,
+                zoomOut,
+                zoomIn,
+                zoomFit,
+                bookmarkToggle,
+                speakToggle,
+            ]) {
                 button.disabled = !loaded;
             }
             pageInput.disabled = !loaded;
@@ -64,6 +75,12 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
             bookmarkToggle.title = state.bookmarked
                 ? "このページのしおりを外す ( b )"
                 : "このページにしおりを挟む ( b )";
+
+            speakToggle.textContent = state.speaking ? "止" : "読";
+            speakToggle.setAttribute("aria-pressed", String(state.speaking));
+            speakToggle.title = state.speaking
+                ? "読み上げを止める ( r )"
+                : "このページから読み上げる ( r )";
 
             toggleSidebar.setAttribute("aria-pressed", String(!state.sidebarCollapsed));
             toggleSidebar.title = state.sidebarCollapsed

@@ -1,6 +1,8 @@
 import { isPdf, openFile } from "./pdf/loader.ts";
 import { loadOutline, nodeForPage } from "./pdf/outline.ts";
 import { clampScale, createRenderer, SCALE_STEP } from "./pdf/renderer.ts";
+import { sentencesForPage } from "./pdf/text.ts";
+import { createSpeaker } from "./speech/speaker.ts";
 import { createStore } from "./state/store.ts";
 import type { Bookmark, OpenDocument, OutlineNode, ViewerState } from "./state/types.ts";
 import {
@@ -43,7 +45,24 @@ const store = createStore<ViewerState>({
     scale: 1,
     fit: true,
     bookmarked: false,
+    speaking: false,
     sidebarCollapsed: prefs.sidebarCollapsed,
+});
+
+const speaker = createSpeaker({
+    sentencesFor: (page) =>
+        active === null ? Promise.resolve([]) : sentencesForPage(active.doc, page),
+
+    nextPage: async () => {
+        if (active === null || active.view.page >= active.numPages) {
+            return null;
+        }
+        await draw(active.view.page + 1);
+        return active.view.page;
+    },
+
+    onChange: (speaking) => store.set({ speaking }),
+    onNotice: (text) => statusbar.error(text),
 });
 
 let active: OpenDocument | null = null;
@@ -120,6 +139,13 @@ async function draw(pageNumber: number): Promise<void> {
     if (active === null) {
         return;
     }
+
+    // 自動送りと、同じページの描き直しでは止めない
+    const target = Math.min(Math.max(pageNumber, 1), active.numPages);
+    if (target !== active.view.page && !speaker.advancing) {
+        speaker.stop();
+    }
+
     try {
         await renderer.render(active, pageNumber);
         const page = active.view.page;
@@ -174,13 +200,22 @@ const actions = {
         syncBookmarks();
     },
 
+    onToggleSpeech: () => {
+        if (active !== null) {
+            speaker.toggle(active.view.page);
+        }
+    },
+
     onToggleSidebar: () => {
         const sidebarCollapsed = !store.get().sidebarCollapsed;
         store.set({ sidebarCollapsed });
         savePrefs({ sidebarCollapsed });
     },
 
-    onEscape: () => statusbar.clear(),
+    onEscape: () => {
+        speaker.stop();
+        statusbar.clear();
+    },
 };
 
 const toolbar = createToolbar(actions);
@@ -200,6 +235,7 @@ async function open(files: File[]): Promise<void> {
 
     const file = pdfs[pdfs.length - 1];
     statusbar.info(`${file.name} を読み込み中…`);
+    speaker.stop();
 
     try {
         const started = performance.now();

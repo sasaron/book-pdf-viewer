@@ -1,0 +1,626 @@
+{
+    "10": {
+        "height": 660.472,
+        "items": [
+            {
+                "str": "3.2 容量の見積もり",
+                "transform": [
+                    9.35,
+                    0,
+                    0,
+                    9.35,
+                    336.61,
+                    613.11
+                ],
+                "width": 84.15,
+                "height": 9.35,
+                "fontName": "f_head"
+            },
+            {
+                "str": "リングバッファの容量は、書き込みの速さと読み出しの速さの差から決める。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    577.64
+                ],
+                "width": 289.1,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "両者が釣り合っているなら、バッファは短くてよい。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    563.61
+                ],
+                "width": 198.24,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "見積もりを外したときの振る舞いは、先に決めておく。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    549.58
+                ],
+                "width": 206.5,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "10",
+                "transform": [
+                    9.35,
+                    0,
+                    0,
+                    9.35,
+                    70.87,
+                    30.12
+                ],
+                "width": 9.35,
+                "height": 9.35,
+                "fontName": "f_head"
+            },
+            {
+                "str": "第 3 章 リングバッファ",
+                "transform": [
+                    9.35,
+                    0,
+                    0,
+                    9.35,
+                    100.31,
+                    30.12
+                ],
+                "width": 102.85,
+                "height": 9.35,
+                "fontName": "f_head"
+            }
+        ],
+        "styles": {
+            "f_body": {
+                "fontFamily": "serif"
+            },
+            "f_head": {
+                "fontFamily": "sans-serif"
+            }
+        }
+    },
+    "11": {
+        "height": 660.472,
+        "items": [
+            {
+                "str": "確保し直す実装を示す。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    577.64
+                ],
+                "width": 90.86,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "struct Ring { int *slots; int head; int tail; int cap; };",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    554.96
+                ],
+                "width": 238.26,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "struct Ring *NewRing(int cap){",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    543.62
+                ],
+                "width": 125.4,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "struct Ring *r = malloc(sizeof(struct Ring));",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    532.28
+                ],
+                "width": 188.1,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "if(!r) return NULL;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    520.9399999999999
+                ],
+                "width": 79.42,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "r->slots = malloc(cap * sizeof(int));",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    509.59999999999997
+                ],
+                "width": 154.66,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "r->head = 0; r->tail = 0; r->cap = cap;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    498.26
+                ],
+                "width": 163.02,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "ここで容量を二倍に取り直す。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    93.59,
+                    486.92
+                ],
+                "width": 115.64,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "return r;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    475.58000000000004
+                ],
+                "width": 37.62,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "}",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    464.24000000000007
+                ],
+                "width": 4.18,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "int IsFull(struct Ring *r){",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    452.9000000000001
+                ],
+                "width": 112.86,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "return (r->tail + 1) % r->cap == r->head;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    441.5600000000001
+                ],
+                "width": 171.38,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "}",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    430.22000000000014
+                ],
+                "width": 4.18,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "int Put(struct Ring *r, int x){",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    418.88000000000017
+                ],
+                "width": 129.58,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "if(IsFull(r)) return -1;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    407.5400000000002
+                ],
+                "width": 100.32,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "//",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    396.2000000000002
+                ],
+                "width": 8.36,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": " 満杯なら書き込みを断る",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    103.59,
+                    396.2000000000002
+                ],
+                "width": 94.99,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "r->slots[r->tail] = x;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    384.86000000000024
+                ],
+                "width": 91.96,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "r->tail = (r->tail + 1) % r->cap;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    373.52000000000027
+                ],
+                "width": 137.94,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "return 0;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    362.1800000000003
+                ],
+                "width": 37.62,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "}",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    350.8400000000003
+                ],
+                "width": 4.18,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "int Get(struct Ring *r, int *out){",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    339.50000000000034
+                ],
+                "width": 142.12,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "if(IsEmpty(r)) return -1;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    328.16000000000037
+                ],
+                "width": 104.5,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "*out = r->slots[r->head];",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    316.8200000000004
+                ],
+                "width": 104.5,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "r->head = (r->head + 1) % r->cap;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    305.4800000000004
+                ],
+                "width": 137.94,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "return 0;",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    93.59,
+                    294.14000000000044
+                ],
+                "width": 37.62,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "}",
+                "transform": [
+                    8.36,
+                    0,
+                    0,
+                    8.36,
+                    79.37,
+                    282.80000000000047
+                ],
+                "width": 4.18,
+                "height": 8.36,
+                "fontName": "f_code"
+            },
+            {
+                "str": "押し込みは償却で一定、取り出しは最悪でも一定である。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    260.1200000000005
+                ],
+                "width": 214.76,
+                "height": 8.26,
+                "fontName": "f_body"
+            }
+        ],
+        "styles": {
+            "f_body": {
+                "fontFamily": "serif"
+            },
+            "f_code": {
+                "fontFamily": "monospace"
+            }
+        }
+    },
+    "12": {
+        "height": 660.472,
+        "items": [
+            {
+                "str": "●書き込み位置：次に置く場所を指す。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    78.66,
+                    577.64
+                ],
+                "width": 144.55,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "●読み出し位置：次に取る場所を指す。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    78.66,
+                    563.61
+                ],
+                "width": 144.55,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "●容量：確保した要素の個数。満杯の判定に使う。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    78.66,
+                    549.58
+                ],
+                "width": 185.85,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "容量を大きく取れば安全に見えるが、バッファに溜まった要素は読まれるま",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    528.53
+                ],
+                "width": 280.84,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "で古くなっていくため、古い要素に価値がない用途では、大きなバッファ",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    514.5
+                ],
+                "width": 272.58,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "はかえって害になり、待ち時間だけがいたずらに伸びていくことになる。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    500.47
+                ],
+                "width": 272.58,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "S(n) = 3n + 1",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    237.96,
+                    479.42
+                ],
+                "width": 53.69,
+                "height": 8.26,
+                "fontName": "f_body"
+            },
+            {
+                "str": "余裕をどれだけ積むかは、測ってから決める。",
+                "transform": [
+                    8.26,
+                    0,
+                    0,
+                    8.26,
+                    70.87,
+                    458.37
+                ],
+                "width": 173.46,
+                "height": 8.26,
+                "fontName": "f_body"
+            }
+        ],
+        "styles": {
+            "f_body": {
+                "fontFamily": "serif"
+            }
+        }
+    }
+}

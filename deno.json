@@ -1,7 +1,7 @@
 {
     "nodeModulesDir": "auto",
     "tasks": {
-        "test": "deno test --no-check --location=http://localhost/ tests/"
+        "test": "deno test --no-check --location=http://localhost/ --allow-read=tests/fixtures tests/"
     },
     "fmt": {
         "exclude": ["**"]
