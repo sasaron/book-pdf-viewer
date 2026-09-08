@@ -13,12 +13,14 @@ import {
     saveStore,
     toggleMark,
 } from "./storage/bookmarks.ts";
+import * as library from "./storage/library.ts";
 import { loadPrefs, savePrefs } from "./storage/prefs.ts";
 import { createBookmarksView } from "./ui/bookmarks-view.ts";
 import { createDocTabs } from "./ui/doctabs.ts";
 import { required } from "./ui/dom.ts";
 import { createDropzone } from "./ui/dropzone.ts";
 import { createKeyboard } from "./ui/keyboard.ts";
+import { createLibraryView } from "./ui/library-view.ts";
 import { createOutlineView } from "./ui/outline-view.ts";
 import { createStatusbar } from "./ui/statusbar.ts";
 import { createToolbar } from "./ui/toolbar.ts";
@@ -153,11 +155,47 @@ function syncTabs(): void {
     docTabs.render(openDocuments(), active?.id ?? null);
 }
 
+const emptyPane = document.createElement("div");
+emptyPane.className = "empty-pane";
+
+const guide = document.createElement("p");
+guide.className = "empty";
+guide.textContent = EMPTY_MESSAGE;
+
+const libraryPane = document.createElement("div");
+libraryPane.className = "library";
+libraryPane.hidden = true;
+
+emptyPane.append(guide, libraryPane);
+
+const libraryView = createLibraryView(libraryPane, {
+    onOpen: (id) => void openFromLibrary(id),
+    onRemove: (id) => void forget(id),
+});
+
 function showEmptyState(): void {
-    const guide = document.createElement("p");
-    guide.className = "empty";
-    guide.textContent = EMPTY_MESSAGE;
-    viewer.replaceChildren(guide);
+    viewer.replaceChildren(emptyPane);
+}
+
+async function refreshLibrary(): Promise<void> {
+    const [entries, used] = await Promise.all([library.list(), library.usage()]);
+    libraryView.render(entries, used);
+}
+
+async function openFromLibrary(id: DocId): Promise<void> {
+    const file = await library.read(id);
+    if (file === null) {
+        // ブラウザが退避したあと。しおりは localStorage 側に残っている
+        statusbar.error("この端末から消えていました。D&D で開き直してください。");
+        await refreshLibrary();
+        return;
+    }
+    await open([file]);
+}
+
+async function forget(id: DocId): Promise<void> {
+    await library.remove(id);
+    await refreshLibrary();
 }
 
 async function draw(pageNumber: number): Promise<void> {
@@ -256,6 +294,7 @@ async function closeTab(id: DocId): Promise<void> {
         store.set({ docId: null, name: "", numPages: 0, page: 1, bookmarked: false });
         syncTabs();
         statusbar.clear();
+        void refreshLibrary();
         return;
     }
 
@@ -338,6 +377,7 @@ async function open(files: File[]): Promise<void> {
     const started = performance.now();
     const alreadyOpen = new Set(openDocuments().map((doc) => doc.id));
     const opened: OpenDocument[] = [];
+    const stash: [DocId, File][] = [];
     const failed: string[] = [];
 
     for (const file of pdfs) {
@@ -351,6 +391,8 @@ async function open(files: File[]): Promise<void> {
                 doc.view.page = Math.min(Math.max(entry.lastPage, 1), doc.numPages);
             }
 
+            // openFile がバッファを worker へ transfer した後も File 自体は読める
+            stash.push([doc.id, file]);
             opened.push(doc);
         } catch (error) {
             failed.push(`${file.name}: ${message(error)}`);
@@ -371,6 +413,28 @@ async function open(files: File[]): Promise<void> {
     const elapsed = Math.round(performance.now() - started);
     const note = failed.length === 0 ? "" : ` / ${failed.length} 冊は開けなかった`;
     statusbar.info(`${first.numPages} ページ / ${elapsed}ms${resumed}${note}`);
+
+    // 保存できなくても読めているので、待たせず後ろで流す
+    void stashToLibrary(stash);
+}
+
+async function stashToLibrary(stash: readonly [DocId, File][]): Promise<void> {
+    if (stash.length === 0 || !library.isSupported()) {
+        return;
+    }
+
+    // ライブラリから開いた本を書き戻しても同じ中身にしかならない
+    const stored = new Set((await library.list()).map((entry) => entry.id));
+    const fresh = stash.filter(([id]) => !stored.has(id));
+    if (fresh.length === 0) {
+        return;
+    }
+
+    await library.requestPersistence();
+    for (const [id, file] of fresh) {
+        await library.save(id, file);
+    }
+    await refreshLibrary();
 }
 
 createDropzone(document.body, { onFiles: (files) => void open(files) });
@@ -393,3 +457,4 @@ document.body.classList.toggle("sidebar-collapsed", prefs.sidebarCollapsed);
 toolbar.update(store.get());
 bookmarksView.render([]);
 showEmptyState();
+void refreshLibrary();
