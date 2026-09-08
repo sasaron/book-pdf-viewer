@@ -5,12 +5,21 @@
     scrollbar-gutter: stable;
     padding: 16px;
     background: var(--bg-sunken);
-    text-align: center;
+    display: flex;
+    /* safe を外すと拡大時に左端が見切れてスクロールで戻せなくなる */
+    justify-content: safe center;
+    align-items: flex-start;
 }
 
+.page {
+    position: relative;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+/* max-width で canvas だけ縮むとテキストレイヤとズレる。拡大時は viewer 側で送る */
 .viewer canvas {
-    max-width: 100%;
-    height: auto;
+    display: block;
     box-shadow: 0 1px 8px rgb(0 0 0 / 0.18);
 }
 

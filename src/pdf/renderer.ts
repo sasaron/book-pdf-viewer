@@ -1,6 +1,7 @@
 import type { PageViewport, PDFPageProxy, RenderTask } from "pdfjs-dist";
 import { RenderingCancelledException } from "pdfjs-dist";
 import type { OpenDocument } from "../state/types.ts";
+import { createTextLayer, type TextLayerHandle } from "./textlayer.ts";
 
 export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 4;
@@ -55,6 +56,7 @@ export type Renderer = {
 
 export function createRenderer(viewer: HTMLElement): Renderer {
     let task: RenderTask | null = null;
+    let text: TextLayerHandle | null = null;
     let generation = 0;
     let fitWidth = 0;
 
@@ -65,6 +67,7 @@ export function createRenderer(viewer: HTMLElement): Renderer {
         // getPage の await は cancel できないので、追い越されたことを世代でも見る
         const gen = ++generation;
         task?.cancel();
+        text?.cancel();
 
         const page = await opened.doc.getPage(target);
         if (gen !== generation) {
@@ -92,8 +95,11 @@ export function createRenderer(viewer: HTMLElement): Renderer {
         });
         task = current;
 
+        const layer = createTextLayer(page, viewport);
+        text = layer;
+
         try {
-            await current.promise;
+            await Promise.all([current.promise, layer.render()]);
         } catch (error) {
             if (isCancelled(error)) {
                 return;
@@ -106,10 +112,19 @@ export function createRenderer(viewer: HTMLElement): Renderer {
         }
 
         if (gen !== generation) {
+            layer.cancel();
             return;
         }
 
-        viewer.replaceChildren(canvas);
+        // setLayerDimensions が幅高さを --total-scale-factor 込みの calc で書くので親が持つ必要がある
+        const wrapper = document.createElement("div");
+        wrapper.className = "page";
+        wrapper.style.setProperty("--total-scale-factor", String(scale));
+        wrapper.style.setProperty("--scale-round-x", "1px");
+        wrapper.style.setProperty("--scale-round-y", "1px");
+        wrapper.append(canvas, layer.element);
+
+        viewer.replaceChildren(wrapper);
         viewer.scrollTop = 0;
     }
 
