@@ -1,8 +1,17 @@
 import { isPdf, openFile } from "./pdf/loader.ts";
 import { clampScale, createRenderer, SCALE_STEP } from "./pdf/renderer.ts";
 import { createStore } from "./state/store.ts";
-import type { OpenDocument, ViewerState } from "./state/types.ts";
+import type { Bookmark, OpenDocument, ViewerState } from "./state/types.ts";
+import {
+    type BookmarkEntry,
+    type BookmarkStore,
+    hasMark,
+    loadStore,
+    saveStore,
+    toggleMark,
+} from "./storage/bookmarks.ts";
 import { loadPrefs, savePrefs } from "./storage/prefs.ts";
+import { createBookmarksView } from "./ui/bookmarks-view.ts";
 import { required } from "./ui/dom.ts";
 import { createDropzone } from "./ui/dropzone.ts";
 import { createKeyboard } from "./ui/keyboard.ts";
@@ -13,12 +22,15 @@ import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
 
+const LAST_PAGE_FLUSH_MS = 500;
+
 const viewer = required<HTMLElement>("#viewer");
 const fileInput = required<HTMLInputElement>("#file");
 const statusbar = createStatusbar(required<HTMLElement>("#statusbar"));
 const renderer = createRenderer(viewer);
 
 const prefs = loadPrefs();
+const bookmarks: BookmarkStore = loadStore();
 
 const store = createStore<ViewerState>({
     docId: null,
@@ -27,13 +39,69 @@ const store = createStore<ViewerState>({
     numPages: 0,
     scale: 1,
     fit: true,
+    bookmarked: false,
     sidebarCollapsed: prefs.sidebarCollapsed,
 });
 
 let active: OpenDocument | null = null;
+let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 function message(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
+}
+
+function entryFor(opened: OpenDocument): BookmarkEntry {
+    const existing = bookmarks[opened.id];
+    if (existing !== undefined) {
+        return existing;
+    }
+    const created: BookmarkEntry = {
+        name: opened.name,
+        updatedAt: Date.now(),
+        lastPage: 1,
+        marks: [],
+    };
+    bookmarks[opened.id] = created;
+    return created;
+}
+
+function currentMarks(): readonly Bookmark[] {
+    return active === null ? [] : entryFor(active).marks;
+}
+
+// 連打で毎回 localStorage を書くと同期I/Oが積み上がる
+function flushLater(): void {
+    clearTimeout(flushTimer);
+    flushTimer = setTimeout(() => saveStore(bookmarks), LAST_PAGE_FLUSH_MS);
+}
+
+function persistNow(): void {
+    clearTimeout(flushTimer);
+    saveStore(bookmarks);
+}
+
+const bookmarksView = createBookmarksView(
+    required<HTMLElement>("#bookmarks"),
+    required<HTMLElement>("#bookmarks-head"),
+    {
+        onJump: (page) => void draw(page),
+        onRemove: (page) => {
+            if (active === null) {
+                return;
+            }
+            const entry = entryFor(active);
+            entry.marks = entry.marks.filter((mark) => mark.page !== page);
+            entry.updatedAt = Date.now();
+            persistNow();
+            syncBookmarks();
+        },
+    },
+);
+
+function syncBookmarks(): void {
+    const marks = currentMarks();
+    bookmarksView.render(marks);
+    store.set({ bookmarked: hasMark(marks, store.get().page) });
 }
 
 async function draw(pageNumber: number): Promise<void> {
@@ -42,7 +110,17 @@ async function draw(pageNumber: number): Promise<void> {
     }
     try {
         await renderer.render(active, pageNumber);
-        store.set({ page: active.view.page, scale: active.view.scale, fit: active.view.fit });
+        const page = active.view.page;
+        const entry = entryFor(active);
+        entry.lastPage = page;
+        entry.updatedAt = Date.now();
+        flushLater();
+        store.set({
+            page,
+            scale: active.view.scale,
+            fit: active.view.fit,
+            bookmarked: hasMark(entry.marks, page),
+        });
     } catch (error) {
         statusbar.error(`描画できませんでした: ${message(error)}`);
     }
@@ -70,6 +148,17 @@ const actions = {
         }
         active.view.fit = true;
         void draw(active.view.page);
+    },
+
+    onToggleBookmark: () => {
+        if (active === null) {
+            return;
+        }
+        const entry = entryFor(active);
+        entry.marks = toggleMark(entry.marks, active.view.page);
+        entry.updatedAt = Date.now();
+        persistNow();
+        syncBookmarks();
     },
 
     onToggleSidebar: () => {
@@ -102,18 +191,30 @@ async function open(files: File[]): Promise<void> {
     try {
         const started = performance.now();
         active = await openFile(file);
+
+        const entry = entryFor(active);
+        entry.name = active.name;
+        const resume = Math.min(Math.max(entry.lastPage, 1), active.numPages);
+
         store.set({
             docId: active.id,
             name: active.name,
             numPages: active.numPages,
-            page: active.view.page,
+            page: resume,
             fit: active.view.fit,
         });
-        await draw(active.view.page);
-        statusbar.info(`${active.numPages} ページ / ${Math.round(performance.now() - started)}ms`);
+
+        await draw(resume);
+        syncBookmarks();
+
+        const resumed = resume > 1 ? ` / ${resume} ページから` : "";
+        statusbar.info(
+            `${active.numPages} ページ / ${Math.round(performance.now() - started)}ms${resumed}`,
+        );
     } catch (error) {
         active = null;
-        store.set({ docId: null, name: "", numPages: 0 });
+        store.set({ docId: null, name: "", numPages: 0, bookmarked: false });
+        bookmarksView.render([]);
         statusbar.error(`開けませんでした: ${message(error)}`);
     }
 }
@@ -131,5 +232,9 @@ renderer.watchResize(() => {
     }
 });
 
+// タブを閉じるときに debounce 待ちの lastPage が消えると「続きから」がずれる
+globalThis.addEventListener("pagehide", persistNow);
+
 document.body.classList.toggle("sidebar-collapsed", prefs.sidebarCollapsed);
 toolbar.update(store.get());
+bookmarksView.render([]);

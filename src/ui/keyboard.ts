@@ -1,6 +1,7 @@
 export type KeyboardActions = {
     onStep(delta: number): void;
     onZoom(direction: number): void;
+    onToggleBookmark(): void;
     onToggleSidebar(): void;
     onEscape(): void;
 };
@@ -17,6 +18,9 @@ export function createKeyboard(actions: KeyboardActions): void {
                 return;
             case "[":
                 actions.onToggleSidebar();
+                return;
+            case "b":
+                actions.onToggleBookmark();
                 return;
             case "ArrowLeft":
                 actions.onStep(-1);

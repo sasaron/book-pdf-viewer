@@ -16,6 +16,11 @@ export type OpenDocument = {
     view: DocumentView;
 };
 
+export type Bookmark = {
+    page: number;
+    label: string;
+};
+
 export type ViewerState = {
     docId: DocId | null;
     name: string;
@@ -23,5 +28,6 @@ export type ViewerState = {
     numPages: number;
     scale: number;
     fit: boolean;
+    bookmarked: boolean;
     sidebarCollapsed: boolean;
 };

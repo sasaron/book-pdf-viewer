@@ -7,6 +7,7 @@ export type ToolbarActions = {
     onStep(delta: number): void;
     onZoom(direction: number): void;
     onFit(): void;
+    onToggleBookmark(): void;
     onToggleSidebar(): void;
 };
 
@@ -26,6 +27,7 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
     const zoomFit = required<HTMLButtonElement>("#zoom-fit");
     const scaleLabel = required<HTMLElement>("#scale-label");
     const docName = required<HTMLElement>("#doc-name");
+    const bookmarkToggle = required<HTMLButtonElement>("#bookmark-toggle");
     const toggleSidebar = required<HTMLButtonElement>("#toggle-sidebar");
 
     openButton.addEventListener("click", () => fileInput.click());
@@ -35,13 +37,14 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
     zoomOut.addEventListener("click", () => actions.onZoom(-1));
     zoomIn.addEventListener("click", () => actions.onZoom(1));
     zoomFit.addEventListener("click", () => actions.onFit());
+    bookmarkToggle.addEventListener("click", () => actions.onToggleBookmark());
     toggleSidebar.addEventListener("click", () => actions.onToggleSidebar());
 
     return {
         update(state) {
             const loaded = state.docId !== null;
 
-            for (const button of [prev, next, zoomOut, zoomIn, zoomFit]) {
+            for (const button of [prev, next, zoomOut, zoomIn, zoomFit, bookmarkToggle]) {
                 button.disabled = !loaded;
             }
             pageInput.disabled = !loaded;
@@ -55,6 +58,13 @@ export function createToolbar(actions: ToolbarActions): Toolbar {
             docName.textContent = state.name;
 
             zoomFit.setAttribute("aria-pressed", String(state.fit));
+
+            bookmarkToggle.textContent = state.bookmarked ? "★" : "☆";
+            bookmarkToggle.setAttribute("aria-pressed", String(state.bookmarked));
+            bookmarkToggle.title = state.bookmarked
+                ? "このページのしおりを外す ( b )"
+                : "このページにしおりを挟む ( b )";
+
             toggleSidebar.setAttribute("aria-pressed", String(!state.sidebarCollapsed));
             toggleSidebar.title = state.sidebarCollapsed
                 ? "サイドバーを出す ( [ )"

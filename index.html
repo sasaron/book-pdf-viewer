@@ -29,6 +29,8 @@
             <span id="scale-label" class="scale-label"></span>
         </div>
 
+        <button id="bookmark-toggle" class="toggle bookmark-toggle" type="button" aria-pressed="false" title="このページにしおりを挟む ( b )" disabled>☆</button>
+
         <span class="spacer"></span>
 
         <span id="doc-name" class="doc-name"></span>
@@ -37,8 +39,8 @@
 
     <main class="panes">
         <nav id="sidebar" class="pane pane-side" aria-label="しおりと目次">
-            <div class="pane-head">しおり</div>
-            <div id="bookmarks" class="bookmarks"></div>
+            <div id="bookmarks-head" class="pane-head" hidden>しおり</div>
+            <div id="bookmarks" class="bookmarks" hidden></div>
             <div class="pane-head">目次</div>
             <div id="outline" class="outline"></div>
         </nav>
