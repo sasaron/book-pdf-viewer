@@ -21,6 +21,13 @@ export type Bookmark = {
     label: string;
 };
 
+export type OutlineNode = {
+    title: string;
+    page: number | null;
+    depth: number;
+    children: OutlineNode[];
+};
+
 export type ViewerState = {
     docId: DocId | null;
     name: string;

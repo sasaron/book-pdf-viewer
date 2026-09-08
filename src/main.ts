@@ -1,7 +1,8 @@
 import { isPdf, openFile } from "./pdf/loader.ts";
+import { loadOutline, nodeForPage } from "./pdf/outline.ts";
 import { clampScale, createRenderer, SCALE_STEP } from "./pdf/renderer.ts";
 import { createStore } from "./state/store.ts";
-import type { Bookmark, OpenDocument, ViewerState } from "./state/types.ts";
+import type { Bookmark, OpenDocument, OutlineNode, ViewerState } from "./state/types.ts";
 import {
     type BookmarkEntry,
     type BookmarkStore,
@@ -15,6 +16,7 @@ import { createBookmarksView } from "./ui/bookmarks-view.ts";
 import { required } from "./ui/dom.ts";
 import { createDropzone } from "./ui/dropzone.ts";
 import { createKeyboard } from "./ui/keyboard.ts";
+import { createOutlineView } from "./ui/outline-view.ts";
 import { createStatusbar } from "./ui/statusbar.ts";
 import { createToolbar } from "./ui/toolbar.ts";
 import "./styles/tokens.css";
@@ -44,6 +46,7 @@ const store = createStore<ViewerState>({
 });
 
 let active: OpenDocument | null = null;
+let outline: OutlineNode[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 
 function message(error: unknown): string {
@@ -98,6 +101,14 @@ const bookmarksView = createBookmarksView(
     },
 );
 
+const outlineView = createOutlineView(required<HTMLElement>("#outline"), {
+    onJump: (page) => void draw(page),
+});
+
+function labelForPage(page: number): string {
+    return nodeForPage(outline, page)?.title ?? "";
+}
+
 function syncBookmarks(): void {
     const marks = currentMarks();
     bookmarksView.render(marks);
@@ -115,6 +126,7 @@ async function draw(pageNumber: number): Promise<void> {
         entry.lastPage = page;
         entry.updatedAt = Date.now();
         flushLater();
+        outlineView.highlight(page);
         store.set({
             page,
             scale: active.view.scale,
@@ -155,7 +167,7 @@ const actions = {
             return;
         }
         const entry = entryFor(active);
-        entry.marks = toggleMark(entry.marks, active.view.page);
+        entry.marks = toggleMark(entry.marks, active.view.page, labelForPage(active.view.page));
         entry.updatedAt = Date.now();
         persistNow();
         syncBookmarks();
@@ -190,6 +202,8 @@ async function open(files: File[]): Promise<void> {
 
     try {
         const started = performance.now();
+        outline = [];
+        outlineView.clear();
         active = await openFile(file);
 
         const entry = entryFor(active);
@@ -211,8 +225,18 @@ async function open(files: File[]): Promise<void> {
         statusbar.info(
             `${active.numPages} ページ / ${Math.round(performance.now() - started)}ms${resumed}`,
         );
+
+        // 目次より1ページ目の描画を先に出す
+        const opened = active;
+        outline = await loadOutline(opened.doc);
+        if (active === opened) {
+            outlineView.render(outline);
+            outlineView.highlight(opened.view.page);
+        }
     } catch (error) {
         active = null;
+        outline = [];
+        outlineView.clear();
         store.set({ docId: null, name: "", numPages: 0, bookmarked: false });
         bookmarksView.render([]);
         statusbar.error(`開けませんでした: ${message(error)}`);
