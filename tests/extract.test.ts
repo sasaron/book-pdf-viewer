@@ -89,8 +89,17 @@ test("splits sentences at Japanese full stops", () => {
     assert.ok(sentences.includes("●書き込み位置：次に置く場所を指す。"));
 });
 
+test("splits a sentence whose comma sits exactly on the limit", () => {
+    const sentences = pageSentences(page("13").content, fixtures["13"].height);
+
+    assert.deepEqual(
+        sentences.map((sentence) => sentence.length),
+        [51, 58],
+    );
+});
+
 test("every sentence carries Japanese or is long enough to be prose", () => {
-    for (const number of ["10", "11", "12"]) {
+    for (const number of ["10", "11", "12", "13"]) {
         for (const sentence of pageSentences(page(number).content, fixtures[number].height)) {
             assert.ok(
                 /[ぁ-んァ-ヶー一-龠々〆]/.test(sentence) || sentence.length >= 20,
@@ -100,8 +109,8 @@ test("every sentence carries Japanese or is long enough to be prose", () => {
     }
 });
 
-test("no chunk exceeds the utterance limit by much", () => {
-    for (const number of ["10", "11", "12"]) {
+test("no chunk exceeds the utterance limit", () => {
+    for (const number of ["10", "11", "12", "13"]) {
         for (const sentence of pageSentences(page(number).content, fixtures[number].height)) {
             assert.ok(sentence.length <= 90, `page ${number}: ${sentence.length} 文字`);
         }

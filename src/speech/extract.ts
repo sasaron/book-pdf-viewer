@@ -220,7 +220,7 @@ function split(sentence: string): string[] {
     let rest = sentence;
 
     while (rest.length > CHUNK_LENGTH) {
-        const comma = rest.lastIndexOf("、", CHUNK_LENGTH);
+        const comma = rest.lastIndexOf("、", CHUNK_LENGTH - 1);
         const at = comma > CHUNK_LENGTH / 3 ? comma + 1 : CHUNK_LENGTH;
 
         out.push(rest.slice(0, at));
