@@ -120,7 +120,7 @@ export function createOutlineView(container: HTMLElement, actions: OutlineAction
 
         highlight(page) {
             const target = nodeForPage(
-                rows.filter((row) => row.node.depth === 0).map((row) => row.node),
+                rows.map(({ node }) => node).filter((node) => node.depth === 0),
                 page,
             );
 

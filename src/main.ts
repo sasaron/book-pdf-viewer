@@ -288,7 +288,8 @@ async function closeTab(id: DocId): Promise<void> {
         return;
     }
 
-    if (rest.length === 0) {
+    const last = rest.at(-1);
+    if (last === undefined) {
         outlineView.clear();
         bookmarksView.render([]);
         showEmptyState();
@@ -299,7 +300,7 @@ async function closeTab(id: DocId): Promise<void> {
         return;
     }
 
-    await activate(rest[rest.length - 1]);
+    await activate(last);
 }
 
 const actions = {
@@ -365,14 +366,15 @@ store.subscribe((state) => {
 
 async function open(files: File[]): Promise<void> {
     const pdfs = files.filter(isPdf);
-    if (pdfs.length === 0) {
+    const [head] = pdfs;
+    if (head === undefined) {
         statusbar.error("PDF ではありません");
         return;
     }
 
     speaker.stop();
     statusbar.info(
-        pdfs.length === 1 ? `${pdfs[0].name} を読み込み中…` : `${pdfs.length} 冊を読み込み中…`,
+        pdfs.length === 1 ? `${head.name} を読み込み中…` : `${pdfs.length} 冊を読み込み中…`,
     );
 
     const started = performance.now();
@@ -402,12 +404,12 @@ async function open(files: File[]): Promise<void> {
 
     syncTabs();
 
-    if (opened.length === 0) {
+    const [first] = opened;
+    if (first === undefined) {
         statusbar.error(`開けませんでした — ${failed.join(" / ")}`);
         return;
     }
 
-    const first = opened[0];
     await activate(first);
 
     const resumed = first.view.page > 1 ? ` / ${first.view.page} ページから` : "";

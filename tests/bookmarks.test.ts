@@ -31,7 +31,7 @@ test("addMark ignores a page that is already marked", () => {
     const marks = addMark(addMark([], 10, "初回"), 10, "二回目");
 
     assert.equal(marks.length, 1);
-    assert.equal(marks[0].label, "初回");
+    assert.equal(marks[0]?.label, "初回");
 });
 
 test("removeMark drops only the named page", () => {
@@ -85,9 +85,9 @@ test("different docIds stay separate", () => {
 
     const loaded = loadStore();
 
-    assert.equal(loaded.abc.lastPage, 5);
-    assert.equal(loaded.def.lastPage, 9);
-    assert.deepEqual(loaded.abc.marks, [{ page: 5, label: "" }]);
+    assert.equal(loaded.abc?.lastPage, 5);
+    assert.equal(loaded.def?.lastPage, 9);
+    assert.deepEqual(loaded.abc?.marks, [{ page: 5, label: "" }]);
 });
 
 test("parseStore recovers from broken JSON", () => {

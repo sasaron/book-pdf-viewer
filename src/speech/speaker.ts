@@ -139,7 +139,9 @@ export function createSpeaker({
             utterance.voice = voice;
         }
 
-        utterance.addEventListener("end", () => speakNext());
+        utterance.addEventListener("end", () => {
+            speakNext().catch(fail);
+        });
         utterance.addEventListener("error", (event) => {
             // 自分で cancel したときも error として届く。そのときは何も言わない
             if (event.error === "interrupted" || event.error === "canceled") {
@@ -196,7 +198,14 @@ export function createSpeaker({
             return;
         }
 
-        start(page);
+        start(page).catch(fail);
+    }
+
+    function fail(error: unknown): void {
+        stop();
+        onNotice(
+            `読み上げを続けられなかった: ${error instanceof Error ? error.message : String(error)}`,
+        );
     }
 
     // 読み上げたまま再読み込みすると、次のページでも喋り続ける

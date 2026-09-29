@@ -18,11 +18,11 @@ function fakeDoc(items: FakeItem[], named: Record<string, unknown> = {}): Outlin
             }
             return named[id];
         },
-        getPageIndex: async (ref: { num?: number }) => {
-            if (typeof ref?.num !== "number") {
+        getPageIndex: async (dest: { num?: number }) => {
+            if (typeof dest?.num !== "number") {
                 throw new Error("not a ref");
             }
-            return ref.num;
+            return dest.num;
         },
     } as unknown as OutlineSource;
 }
@@ -49,11 +49,11 @@ test("keeps the tree shape and depth", async () => {
     );
 
     assert.equal(nodes.length, 2);
-    assert.equal(nodes[0].depth, 0);
-    assert.equal(nodes[0].children.length, 2);
-    assert.equal(nodes[0].children[1].depth, 1);
-    assert.equal(nodes[0].children[1].children[0].depth, 2);
-    assert.equal(nodes[0].children[1].children[0].title, "1.2.1 詳細");
+    assert.equal(nodes[0]?.depth, 0);
+    assert.equal(nodes[0]?.children.length, 2);
+    assert.equal(nodes[0]?.children[1]?.depth, 1);
+    assert.equal(nodes[0]?.children[1]?.children[0]?.depth, 2);
+    assert.equal(nodes[0]?.children[1]?.children[0]?.title, "1.2.1 詳細");
     assert.deepEqual(
         flatten(nodes).map((node) => node.page),
         [1, 3, 6, 7, 21],
@@ -63,7 +63,7 @@ test("keeps the tree shape and depth", async () => {
 test("resolves a dest given as an array", async () => {
     const nodes = await loadOutline(fakeDoc([{ title: "配列", dest: [ref(41)] }]));
 
-    assert.equal(nodes[0].page, 42);
+    assert.equal(nodes[0]?.page, 42);
 });
 
 test("resolves a dest given as a named string", async () => {
@@ -71,7 +71,7 @@ test("resolves a dest given as a named string", async () => {
         fakeDoc([{ title: "文字列", dest: "chapter-3" }], { "chapter-3": [ref(99)] }),
     );
 
-    assert.equal(nodes[0].page, 100);
+    assert.equal(nodes[0]?.page, 100);
 });
 
 test("falls back to null when the dest cannot be resolved", async () => {
@@ -95,14 +95,14 @@ test("an unresolvable parent keeps its resolvable children", async () => {
         fakeDoc([{ title: "親", dest: "missing", items: [{ title: "子", dest: [ref(9)] }] }]),
     );
 
-    assert.equal(nodes[0].page, null);
-    assert.equal(nodes[0].children[0].page, 10);
+    assert.equal(nodes[0]?.page, null);
+    assert.equal(nodes[0]?.children[0]?.page, 10);
 });
 
 test("title is trimmed", async () => {
     const nodes = await loadOutline(fakeDoc([{ title: "  余白つき \n", dest: [ref(0)] }]));
 
-    assert.equal(nodes[0].title, "余白つき");
+    assert.equal(nodes[0]?.title, "余白つき");
 });
 
 test("an empty outline yields no nodes", async () => {

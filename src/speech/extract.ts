@@ -27,7 +27,7 @@ export type Line = {
     y: number;
     x: number;
     text: string;
-    items: TextItem[];
+    items: [TextItem, ...TextItem[]];
     code: boolean;
 };
 
@@ -113,18 +113,18 @@ function monoRatio(line: Line, styles: TextStyles): number {
 /** 行間の代表値。柱の見分けとコードブロックの判定に使う。 */
 function medianGap(lines: Line[]): number {
     const gaps: number[] = [];
+    let above: Line | undefined;
 
-    for (let i = 1; i < lines.length; i += 1) {
-        gaps.push(lines[i - 1].y - lines[i].y);
-    }
-
-    if (gaps.length === 0) {
-        return 0;
+    for (const line of lines) {
+        if (above !== undefined) {
+            gaps.push(above.y - line.y);
+        }
+        above = line;
     }
 
     gaps.sort((a, b) => a - b);
 
-    return gaps[Math.floor(gaps.length / 2)];
+    return gaps[Math.floor(gaps.length / 2)] ?? 0;
 }
 
 /**
@@ -135,14 +135,15 @@ function medianGap(lines: Line[]): number {
  * コードブロックに挟まれた地の文は、上下との間隔が本文の行間より開くので残る。
  */
 function fillCodeGaps(lines: Line[], gap: number): void {
-    for (let i = 1; i < lines.length - 1; i += 1) {
-        const line = lines[i];
+    for (const [i, line] of lines.entries()) {
+        const prev = lines[i - 1];
+        const next = lines[i + 1];
 
-        if (line.code || !lines[i - 1].code || !lines[i + 1].code) {
+        if (prev === undefined || next === undefined || line.code || !prev.code || !next.code) {
             continue;
         }
 
-        if (lines[i - 1].y - line.y > gap * 1.6 || line.y - lines[i + 1].y > gap * 1.6) {
+        if (prev.y - line.y > gap * 1.6 || line.y - next.y > gap * 1.6) {
             continue;
         }
 
@@ -162,7 +163,7 @@ function lineHeight(line: Line): number {
 function isRunningHead(lines: Line[], height: number): boolean {
     const [head, next] = lines;
 
-    if (next === undefined) {
+    if (head === undefined || next === undefined) {
         return false;
     }
 

@@ -211,6 +211,13 @@ aqua.yaml と aqua-installer の版は `aqua-renovate-config` が追う。
   `Awaited<ReturnType<...>>` で導く (`src/pdf/pdf-types.ts`)
 - **描画の直列化は `RenderTask.cancel()`。** 新しい要求が来たら走行中を捨てる。
   `getPage` の await は cancel できないので、追い越しは世代番号でも見る
+- **`noUncheckedIndexedAccess` を有効にしている。** 移植のあいだはロジックを変えないために
+  切っていた。範囲が保証される添字は、空でないタプル型 (`Line.items`) か
+  分割代入と `undefined` の判定で型に伝える
+- **Biome は推奨セットに加えて、浮いた Promise と変数の隠蔽を拾う。** `noFloatingPromises` は
+  読み上げの `start` と `speakNext` の失敗が握りつぶされていたのを見つけた。
+  `noUnnecessaryConditions` は入れない。Biome の型推論が `noUncheckedIndexedAccess` を知らず、
+  tsc が要求する `?.` を不要と言う
 - **canvas の面積上限はブラウザで出し分ける。** 16,777,216 は iOS Safari の値で、
   Chrome と Firefox は桁が違う。一律にすると拡大時に不必要に解像度を落とす
 

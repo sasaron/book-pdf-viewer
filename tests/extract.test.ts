@@ -14,12 +14,18 @@ const fixtures: Record<string, Fixture> = JSON.parse(
     readFileSync(new URL("./fixtures/textcontent.json", import.meta.url), "utf8"),
 );
 
+function fixture(number: string): Fixture {
+    const found = fixtures[number];
+    assert.ok(found, `フィクスチャに ${number} ページが無い`);
+    return found;
+}
+
 function page(number: string): { content: TextContent; height: number; raw: string } {
-    const fixture = fixtures[number];
+    const { items, styles, height } = fixture(number);
     return {
-        content: { items: fixture.items, styles: fixture.styles, lang: null } as TextContent,
-        height: fixture.height,
-        raw: fixture.items.map((item) => item.str).join(""),
+        content: { items, styles, lang: null } as TextContent,
+        height,
+        raw: items.map((item) => item.str).join(""),
     };
 }
 
@@ -31,13 +37,13 @@ function keptText(number: string): string {
 }
 
 function monospaceText(number: string): string {
-    const fixture = fixtures[number];
+    const { items, styles } = fixture(number);
     const monoFonts = new Set(
-        Object.entries(fixture.styles)
+        Object.entries(styles)
             .filter(([, style]) => style.fontFamily === "monospace")
             .map(([name]) => name),
     );
-    return fixture.items
+    return items
         .filter((item) => monoFonts.has(item.fontName))
         .map((item) => item.str)
         .join("");
@@ -54,7 +60,7 @@ test("drops the page number at the foot", () => {
     const { content, height } = page("10");
 
     assert.ok(
-        fixtures["10"].items.some((item) => item.str.trim() === "10"),
+        fixture("10").items.some((item) => item.str.trim() === "10"),
         "フィクスチャにノンブルが入っていること",
     );
 
@@ -76,21 +82,21 @@ test("folds a page that is mostly code", () => {
 });
 
 test("keeps prose that sits next to code", () => {
-    assert.deepEqual(pageSentences(page("11").content, fixtures["11"].height), [
+    assert.deepEqual(pageSentences(page("11").content, fixture("11").height), [
         "確保し直す実装を示す。",
         "押し込みは償却で一定、取り出しは最悪でも一定である。",
     ]);
 });
 
 test("splits sentences at Japanese full stops", () => {
-    const sentences = pageSentences(page("12").content, fixtures["12"].height);
+    const sentences = pageSentences(page("12").content, fixture("12").height);
 
     assert.equal(sentences.length, 7);
     assert.ok(sentences.includes("●書き込み位置：次に置く場所を指す。"));
 });
 
 test("splits a sentence whose comma sits exactly on the limit", () => {
-    const sentences = pageSentences(page("13").content, fixtures["13"].height);
+    const sentences = pageSentences(page("13").content, fixture("13").height);
 
     assert.deepEqual(
         sentences.map((sentence) => sentence.length),
@@ -100,7 +106,7 @@ test("splits a sentence whose comma sits exactly on the limit", () => {
 
 test("every sentence carries Japanese or is long enough to be prose", () => {
     for (const number of ["10", "11", "12", "13"]) {
-        for (const sentence of pageSentences(page(number).content, fixtures[number].height)) {
+        for (const sentence of pageSentences(page(number).content, fixture(number).height)) {
             assert.ok(
                 /[ぁ-んァ-ヶー一-龠々〆]/.test(sentence) || sentence.length >= 20,
                 `page ${number}: ${sentence}`,
@@ -111,7 +117,7 @@ test("every sentence carries Japanese or is long enough to be prose", () => {
 
 test("no chunk exceeds the utterance limit", () => {
     for (const number of ["10", "11", "12", "13"]) {
-        for (const sentence of pageSentences(page(number).content, fixtures[number].height)) {
+        for (const sentence of pageSentences(page(number).content, fixture(number).height)) {
             assert.ok(sentence.length <= 90, `page ${number}: ${sentence.length} 文字`);
         }
     }

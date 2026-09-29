@@ -172,7 +172,7 @@ test("reports when the browser has no voices", async () => {
     const { createSpeaker } = await import("../src/speech/speaker.ts");
 
     (
-        globalThis as unknown as Record<string, { getVoices(): unknown[] }>
+        globalThis as unknown as { speechSynthesis: { getVoices(): unknown[] } }
     ).speechSynthesis.getVoices = () => [];
 
     const notices: string[] = [];
@@ -188,6 +188,50 @@ test("reports when the browser has no voices", async () => {
 
     assert.deepEqual(stubs.spoken, []);
     assert.deepEqual(notices, ["このブラウザに読み上げ用の音声が入っていない。"]);
+    assert.equal(speaker.speaking, false);
+
+    stubs.restore();
+});
+
+test("stops and reports when the text cannot be read", async () => {
+    const stubs = installSpeechStubs();
+    const { createSpeaker } = await import("../src/speech/speaker.ts");
+
+    const notices: string[] = [];
+    const speaker = createSpeaker({
+        sentencesFor: () => Promise.reject(new Error("壊れたページ")),
+        nextPage: () => Promise.resolve(null),
+        onChange: () => {},
+        onNotice: (text) => notices.push(text),
+    });
+
+    speaker.toggle(1);
+    await settle();
+
+    assert.deepEqual(stubs.spoken, []);
+    assert.deepEqual(notices, ["読み上げを続けられなかった: 壊れたページ"]);
+    assert.equal(speaker.speaking, false);
+
+    stubs.restore();
+});
+
+test("stops and reports when turning the page fails mid-reading", async () => {
+    const stubs = installSpeechStubs();
+    const { createSpeaker } = await import("../src/speech/speaker.ts");
+
+    const notices: string[] = [];
+    const speaker = createSpeaker({
+        sentencesFor: () => Promise.resolve(["いち。"]),
+        nextPage: () => Promise.reject(new Error("描画に失敗")),
+        onChange: () => {},
+        onNotice: (text) => notices.push(text),
+    });
+
+    speaker.toggle(1);
+    await settle();
+
+    assert.deepEqual(stubs.spoken, ["いち。"]);
+    assert.deepEqual(notices, ["読み上げを続けられなかった: 描画に失敗"]);
     assert.equal(speaker.speaking, false);
 
     stubs.restore();

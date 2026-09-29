@@ -8,9 +8,14 @@
         "types": ["vite/client", "node"],
 
         "strict": true,
-        "noUncheckedIndexedAccess": false,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
+        "erasableSyntaxOnly": true,
 
         "noEmit": true,
         "skipLibCheck": true,

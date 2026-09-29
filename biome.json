@@ -19,7 +19,27 @@
     "linter": {
         "enabled": true,
         "rules": {
-            "preset": "recommended"
+            "preset": "recommended",
+            "correctness": {
+                "useImportExtensions": "error"
+            },
+            "suspicious": {
+                "noImportCycles": "error",
+                "noShadow": "error"
+            },
+            "style": {
+                "noNonNullAssertion": "error",
+                "noParameterAssign": "error",
+                "useNumberNamespace": "error",
+                "useConsistentTypeDefinitions": {
+                    "level": "error",
+                    "options": { "style": "type" }
+                }
+            },
+            "nursery": {
+                "noFloatingPromises": "error",
+                "noMisusedPromises": "error"
+            }
         }
     },
     "assist": {

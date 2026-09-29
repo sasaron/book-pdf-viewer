@@ -36,7 +36,9 @@ function pixelRatio(viewport: PageViewport): number {
 export function fitScale(page: PDFPageProxy, viewer: HTMLElement): number {
     const styles = getComputedStyle(viewer);
     const available =
-        viewer.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+        viewer.clientWidth -
+        Number.parseFloat(styles.paddingLeft) -
+        Number.parseFloat(styles.paddingRight);
 
     if (!(available > 0)) {
         return 1;
