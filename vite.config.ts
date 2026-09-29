@@ -68,10 +68,15 @@ function inject(code: string, values: Record<string, string>): string {
 
 export default defineConfig({
     base: "./",
+    build: {
+        // pdf.js の @licstart を残すだけでは足りない。Apache-2.0 は全文の同梱を求め、しかも minify で消える
+        license: { fileName: "LICENSES.md" },
+    },
     plugins: [
         viteStaticCopy({
             targets: PDFJS_ASSET_DIRS.map((dir) => ({
-                src: `${join(pdfjsRoot, dir)}/*`,
+                // quickjs は写さない。enableScripting の sandbox 専用で読まれず、LICENSE も同梱されていない
+                src: [`${join(pdfjsRoot, dir)}/*`, `!${join(pdfjsRoot, dir)}/quickjs-eval.*`],
                 dest: dir,
                 rename: { stripBase: true },
             })),

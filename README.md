@@ -124,7 +124,7 @@ src/styles/
 | --- | --- | --- |
 | `cmaps/` | 169 | CJK の文字コード対応表。**無いと日本語が描画されない** |
 | `standard_fonts/` | 16 | 標準14フォント |
-| `wasm/` | 13 | OpenJPEG、JBIG2、QCMS |
+| `wasm/` | 11 | OpenJPEG、JBIG2、QCMS。スクリプト実行用の QuickJS は写さない |
 | `iccs/` | 2 | CMYK→RGB の ICC プロファイル |
 
 これらの URL は `document.baseURI` に対して絶対化している。`base: './'` のまま渡すと、
@@ -234,4 +234,13 @@ aqua.yaml と aqua-installer の版は `aqua-renovate-config` が追う。
 
 ## ライセンス
 
-[pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) を使っている。
+[pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) を使っている。配布物に入る依存は
+`pdfjs-dist` だけで、ビルドが `dist/LICENSES.md` に Apache-2.0 の全文を書き出す。
+pdf.js が実行時に読むアセットは、それぞれの LICENSE ファイルごと `dist/` に写している。
+
+| dir | ライセンス |
+| --- | --- |
+| `cmaps/` | BSD-3-Clause (Adobe) |
+| `standard_fonts/` | Foxit は BSD-3-Clause (PDFium)、Liberation は GPLv2 とフォント例外 |
+| `wasm/` | OpenJPEG は BSD-2-Clause、JBIG2 は BSD-3-Clause (PDFium) と Apache-2.0、QCMS は MIT。pdf.js 側のラッパーは Apache-2.0、BSD-2-Clause、MIT |
+| `iccs/` | CC0 1.0 |
