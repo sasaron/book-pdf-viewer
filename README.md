@@ -234,6 +234,8 @@ aqua.yaml と aqua-installer の版は `aqua-renovate-config` が追う。
 
 ## ライセンス
 
+このリポジトリは [Apache-2.0](LICENSE)。
+
 [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) を使っている。配布物に入る依存は
 `pdfjs-dist` だけで、ビルドが `dist/LICENSES.md` に Apache-2.0 の全文を書き出す。
 pdf.js が実行時に読むアセットは、それぞれの LICENSE ファイルごと `dist/` に写している。

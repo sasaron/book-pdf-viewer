@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "description": "ローカルPDFをファイル選択とD&Dで開くビューア",
+    "license": "Apache-2.0",
     "scripts": {
         "dev": "vite",
         "build": "tsc --noEmit && tsc --noEmit -p tsconfig.service-worker.json && vite build",
