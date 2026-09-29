@@ -5,9 +5,9 @@
     "description": "ローカルPDFをファイル選択とD&Dで開くビューア",
     "scripts": {
         "dev": "vite",
-        "build": "tsc --noEmit && vite build",
+        "build": "tsc --noEmit && tsc --noEmit -p tsconfig.service-worker.json && vite build",
         "preview": "vite preview",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.service-worker.json",
         "lint": "biome check .",
         "fmt": "biome check --write ."
     },

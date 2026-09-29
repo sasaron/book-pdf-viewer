@@ -32,13 +32,30 @@ export PATH="$(aqua root-dir)/bin:$PATH"
 | `dev` | Vite の開発サーバ |
 | `build` | 型チェックしてから `dist/` を作る |
 | `preview` | `dist/` を配信する |
-| `typecheck` | `tsc --noEmit` |
+| `typecheck` | `tsc --noEmit`。Service Worker は `tsconfig.service-worker.json` で別に見る |
 | `lint` | Biome (フォーマットと lint) |
 | `fmt` | Biome で書き換える |
 | `test` | `deno test` |
 
 `file://` で `dist/index.html` を直接開くと module worker と相対 URL が動かない。
 `deno task preview` を使う。
+
+## アプリとして使う
+
+main に push すると CI が GitHub Pages へ出す。公開先は
+<https://sasaron.github.io/book-pdf-viewer/>。一度開けば Service Worker が全ファイルを
+取り込むので、以降はネットワークが無くても起動する。
+
+macOS では次のどちらかで Dock に置ける。
+
+- Safari 17 以降: ファイル → Dock に追加
+- Chrome: アドレスバーのインストールボタン
+
+新しい版を公開すると、次に起動したときに裏で取り込み、ステータスバーに知らせる。
+切り替わるのは窓をすべて閉じて開き直したとき。開いている窓は古い版のファイル名で
+動いているので、途中では入れ替えない。
+
+アイコンは `icons/*.svg` が元で、PNG は `scripts/icons.sh` が作る (macOS の `sips` を使う)。
 
 ## 操作
 
@@ -63,6 +80,7 @@ export PATH="$(aqua root-dir)/bin:$PATH"
 | `localStorage` `pdfviewer:ui` | サイドバーの開閉 |
 | `localStorage` `pdfviewer:library:v1` | ライブラリの本の名前と保存日 |
 | OPFS `pdfs/<docId>.pdf` | 一度開いた PDF の実体 |
+| Cache Storage `pdf-viewer-<版>` | アプリ本体と pdf.js のアセット。PDF は入れない |
 
 しおりのキーは PDF の内容の SHA-256 の先頭16桁。ファイル名では引かない。
 「〜 (1).pdf」のようなリネームや同名別内容でしおりが分裂・衝突するため。
@@ -83,6 +101,8 @@ Safari が `createWritable` を持たないので、両方で動く道はこれ�
 
 ```
 src/main.ts        起動と配線
+src/sw.ts          Service Worker (ビルド時に vite.config.ts が dist/sw.js へ書き出す)
+src/pwa.ts         Service Worker の登録と更新の検知
 src/pdf/           pdfjs-dist に触れる層 (loader, renderer, textlayer, outline, text)
 src/speech/        読み上げ (extract は純関数、speaker は Web Speech の副作用)
 src/storage/       localStorage (bookmarks, prefs)
@@ -111,6 +131,20 @@ src/styles/
 取りに行くのが worker なので `/assets/` からの相対解決になり、
 SPA フォールバックの HTML を掴んで `WebAssembly.Module` が落ちる。
 開発サーバでは素通りし、`preview` と本番でだけ壊れる。
+
+### Service Worker
+
+`dist/sw.js` は Vite の bundle に入れず、`vite.config.ts` の `serviceWorker()` が
+ビルドの最後に書き出す。static-copy が写した pdf.js のアセットは bundle に載らないので、
+`dist/` を走査して全ファイルをプリキャッシュの一覧にする。キャッシュ名の版は
+`sw.js` 自身と `dist/` の全ファイルの SHA-256 から作るので、どれか1つでも変われば変わる。
+
+型は `tsconfig.service-worker.json` で `lib.webworker` だけを読んで検査する。`lib.dom` と同じ
+プロジェクトに入れると型が衝突するうえ、モジュールでない `sw.ts` の名前が
+アプリ側のグローバルに漏れる。
+
+`sw.js` の URL はハッシュを付けずに固定している。ハッシュ付きにすると、キャッシュ済みの
+古い `index.html` が古い URL を登録し続け、更新に気づけない。
 
 ビルド後に数を確かめられる。
 
@@ -151,6 +185,7 @@ deno run -A scripts/dump-textcontent.mjs <pdf> <page>... > /tmp/textcontent.json
 ## CI とバージョン更新
 
 `.github/workflows/ci.yml` が push と PR で `typecheck` / `lint` / `test` / `build` を回す。
+main への push では、検査が通った `dist/` を GitHub Pages へ出す。
 deno は aqua が入れるので、CI と手元で同じ版になる。`aqua-checksums.json` に
 全プラットフォーム分の SHA-256 を置き、`require_checksum: true` で検証を必須にしている。
 
@@ -183,6 +218,12 @@ aqua.yaml と aqua-installer の版は `aqua-renovate-config` が追う。
 
 - **Safari で動かしていない。** canvas 面積上限の Safari 分岐と、読み上げの keepAlive
   (Chrome 限定分岐) はどちらも Chrome では通らない経路
+- **Safari の「Dock に追加」で作ったアプリを試していない。** オフライン起動と、
+  ITP の7日削除が OPFS に及ぶかは未確認。Safari 本体とはストレージが分かれるので、
+  ブラウザで開いた本はアプリ側のライブラリに出ない
+- **github.io のオリジンは同じユーザーの他の Pages と共有する。** OPFS の `pdfs/` と
+  `localStorage` の `pdfviewer:*` は、同じオリジンの他のページからも読める。
+  Cache Storage だけは接頭辞で自分の分を見分けて消している
 
 ## ライセンス
 

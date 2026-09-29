@@ -2,6 +2,7 @@ import { closeDocument, isPdf, openDocuments, openFile } from "./pdf/loader.ts";
 import { loadOutline, nodeForPage } from "./pdf/outline.ts";
 import { clampScale, createRenderer, SCALE_STEP } from "./pdf/renderer.ts";
 import { sentencesForPage } from "./pdf/text.ts";
+import { registerServiceWorker } from "./pwa.ts";
 import { createSpeaker } from "./speech/speaker.ts";
 import { createStore } from "./state/store.ts";
 import type { Bookmark, DocId, OpenDocument, ViewerState } from "./state/types.ts";
@@ -458,3 +459,13 @@ toolbar.update(store.get());
 bookmarksView.render([]);
 showEmptyState();
 void refreshLibrary();
+
+// 開発サーバでは登録しない。キャッシュが HMR の差し替えより先に古いモジュールを返す
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    registerServiceWorker({
+        onUpdateReady: () =>
+            statusbar.info("新しい版を取り込みました。窓をすべて閉じて開き直すと切り替わります。"),
+    }).catch((error: unknown) => {
+        statusbar.error(`オフライン用の登録に失敗しました: ${message(error)}`);
+    });
+}

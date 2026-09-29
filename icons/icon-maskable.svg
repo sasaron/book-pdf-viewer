@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <title>PDF Viewer</title>
+    <rect width="512" height="512" fill="#2f6fd0"/>
+    <path d="M176 120H296L336 160V392H176Z" fill="#ffffff"/>
+    <path d="M296 120V160H336Z" fill="#c9dbf5"/>
+    <rect x="200" y="200" width="112" height="14" rx="7" fill="#9dbbe8"/>
+    <rect x="200" y="240" width="112" height="14" rx="7" fill="#9dbbe8"/>
+    <rect x="200" y="280" width="112" height="14" rx="7" fill="#9dbbe8"/>
+    <rect x="200" y="320" width="72" height="14" rx="7" fill="#9dbbe8"/>
+</svg>
